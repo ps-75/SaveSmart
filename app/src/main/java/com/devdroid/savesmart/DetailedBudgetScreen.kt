@@ -1,3 +1,4 @@
+// DetailedBudgetScreen.kt
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Delete
@@ -9,16 +10,20 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.tooling.preview.Preview
+import androidx.lifecycle.viewmodel.compose.viewModel
+import com.devdroid.savesmart.Budget
+import com.devdroid.savesmart.BudgetViewModel
 
 @Composable
-fun DetailedBudgetScreen() {
-    // State to manage categories
-    val categories = remember {
-        mutableStateListOf(
-            Category("Shopping", 1200.0, 1000.0, 0.0, true),
-            Category("Transportation", 350.0, 700.0, 350.0, false)
-        )
+fun DetailedBudgetScreen(viewModel: BudgetViewModel) {
+    val budgets by viewModel.budgets.collectAsState()
+    val loading by viewModel.loading.collectAsState()
+
+    if (loading) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            CircularProgressIndicator()
+        }
+        return
     }
 
     Column(
@@ -26,34 +31,30 @@ fun DetailedBudgetScreen() {
             .fillMaxSize()
             .padding(16.dp)
     ) {
-        // Display each category
-        categories.forEachIndexed { index, category ->
-            BudgetCategoryScreen(
-                categoryName = category.name,
-                spentAmount = category.spentAmount,
-                totalAmount = category.totalAmount,
-                remainingAmount = category.remainingAmount,
-                isOverBudget = category.isOverBudget,
-                onDelete = { categories.removeAt(index) } // Remove the category
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+        if (budgets.isEmpty()) {
+            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                Text("No budgets created yet", fontSize = 18.sp)
+            }
+        } else {
+            budgets.forEach { budget ->
+                BudgetCategoryItem(
+                    budget = budget,
+                    onDelete = { viewModel.deleteBudget(budget.id) }
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+            }
         }
-
-        Spacer(modifier = Modifier.height(360.dp))
-
-
     }
 }
 
 @Composable
-fun BudgetCategoryScreen(
-    categoryName: String,
-    spentAmount: Double,
-    totalAmount: Double,
-    remainingAmount: Double,
-    isOverBudget: Boolean,
-    onDelete: () -> Unit // Callback for delete action
+fun BudgetCategoryItem(
+    budget: Budget,
+    onDelete: () -> Unit
 ) {
+    val remainingAmount = budget.totalAmount - budget.spentAmount
+    val isOverBudget = remainingAmount < 0
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(containerColor = Color.White),
@@ -62,24 +63,26 @@ fun BudgetCategoryScreen(
         Column(
             modifier = Modifier.padding(16.dp)
         ) {
-            // Row for Category Name and Delete Button
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Category Name
-                Text(
-                    text = categoryName,
-                    fontSize = 18.sp,
-                    fontWeight = FontWeight.Bold,
-                    color = Color.Black
-                )
+                Column {
+                    Text(
+                        text = budget.category,
+                        fontSize = 18.sp,
+                        fontWeight = FontWeight.Bold,
+                        color = Color.Black
+                    )
+                    Text(
+                        text = budget.month,
+                        fontSize = 14.sp,
+                        color = Color.Gray
+                    )
+                }
 
-                // Delete Button
-                IconButton(
-                    onClick = onDelete // Trigger the delete callback
-                ) {
+                IconButton(onClick = onDelete) {
                     Icon(
                         imageVector = Icons.Default.Delete,
                         contentDescription = "Delete",
@@ -90,30 +93,42 @@ fun BudgetCategoryScreen(
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Spent Amount
-            Text(
-                text = "Spent: $${"%.2f".format(spentAmount)}",
-                fontSize = 16.sp,
-                color = Color.Gray
-            )
-
-            // Total Amount
-            Text(
-                text = "Total: $${"%.2f".format(totalAmount)}",
-                fontSize = 16.sp,
-                color = Color.Gray
+            // Progress indicator
+            LinearProgressIndicator(
+                progress = (budget.spentAmount / budget.totalAmount).toFloat().coerceIn(0f, 1f),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp),
+                color = if (isOverBudget) Color.Red else Color.Green,
+                trackColor = Color.LightGray
             )
 
             Spacer(modifier = Modifier.height(8.dp))
 
-            // Remaining Amount
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = "Spent: $${"%.2f".format(budget.spentAmount)}",
+                    fontSize = 16.sp,
+                    color = Color.Gray
+                )
+                Text(
+                    text = "Total: $${"%.2f".format(budget.totalAmount)}",
+                    fontSize = 16.sp,
+                    color = Color.Gray
+                )
+            }
+
+            Spacer(modifier = Modifier.height(8.dp))
+
             Text(
                 text = "Remaining: $${"%.2f".format(remainingAmount)}",
                 fontSize = 16.sp,
                 color = if (isOverBudget) Color.Red else Color.Green
             )
 
-            // Over Budget Warning
             if (isOverBudget) {
                 Spacer(modifier = Modifier.height(8.dp))
                 Text(
@@ -125,19 +140,4 @@ fun BudgetCategoryScreen(
             }
         }
     }
-}
-
-// Data class for Category
-data class Category(
-    val name: String,
-    val spentAmount: Double,
-    val totalAmount: Double,
-    val remainingAmount: Double,
-    val isOverBudget: Boolean
-)
-
-@Preview(showBackground = true)
-@Composable
-fun PreviewDetailedBudgetScreen() {
-    DetailedBudgetScreen()
 }

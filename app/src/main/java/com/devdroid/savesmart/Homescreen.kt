@@ -5,13 +5,11 @@ import DetailedBudgetScreen
 import android.os.Build
 import android.os.Bundle
 import androidx.compose.material3.Icon
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.annotation.RequiresApi
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -21,7 +19,6 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.tooling.preview.Preview
@@ -29,12 +26,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.devdroid.savesmart.ui.theme.SaveSmartTheme
 import androidx.navigation.NavController
-import androidx.navigation.NavHostController
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
-import com.devdroid.savesmart.IncomeScreen
-import com.devdroid.savesmart.ExpenseScreen
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.foundation.Canvas
@@ -43,7 +37,6 @@ import com.devdroid.savesmart.viewmodel.TransactionViewModel
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.devdroid.savesmart.ui.TransactionItem
 import com.devdroid.savesmart.ui.TransactionScreen
-import java.util.Calendar
 
 class Homescreen : ComponentActivity() {
     @RequiresApi(Build.VERSION_CODES.O)
@@ -52,7 +45,10 @@ class Homescreen : ComponentActivity() {
         enableEdgeToEdge()
         setContent {
             SaveSmartTheme {
-                FinanceTrackerScreen()
+                val transactionViewModel: TransactionViewModel = viewModel()
+                val budgetViewModel: BudgetViewModel = viewModel()
+                FinanceTrackerScreen(transactionViewModel, budgetViewModel)
+
             }
         }
     }
@@ -60,7 +56,10 @@ class Homescreen : ComponentActivity() {
 
 @RequiresApi(Build.VERSION_CODES.O)
 @Composable
-fun FinanceTrackerScreen(viewModel: TransactionViewModel = viewModel()) {
+fun FinanceTrackerScreen(
+    viewModel: TransactionViewModel = viewModel(),
+    transactionViewModel: BudgetViewModel = viewModel(),
+    budgetViewModel: BudgetViewModel = viewModel()) {
     val navController = rememberNavController()
     val navBackStackEntry = navController.currentBackStackEntryAsState()
     val currentRoute = navBackStackEntry.value?.destination?.route ?: "home" // Default to home if null
@@ -118,8 +117,8 @@ fun FinanceTrackerScreen(viewModel: TransactionViewModel = viewModel()) {
             composable("settings") { SettingsScreen(navController) }
             composable("about") { AboutScreen(navController) }
             composable("help") { HelpScreen(navController) }
-            composable("budget") { BudgetScreen(navController) }
-            composable("detailedBudgetScreen") { DetailedBudgetScreen() }
+            composable("budget") { BudgetScreen(navController, budgetViewModel) }
+            composable("detailedBudgetScreen") { DetailedBudgetScreen(budgetViewModel) }
         }
     }
 }
